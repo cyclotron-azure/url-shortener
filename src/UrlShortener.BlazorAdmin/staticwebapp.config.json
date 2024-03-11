@@ -5,16 +5,16 @@
     "routes": [
         {
           "route": "/urlmanager*",
-          "allowedRoles": ["admin"]
+          "allowedRoles": ["authenticated"]
         },
         {
           "route": "/statistics*",
-          "allowedRoles": ["admin"]
+          "allowedRoles": ["authenticated"]
         },
         {
           "route": "/api/*",
           "methods": ["GET", "POST"],
-          "allowedRoles": ["admin"]
+          "allowedRoles": ["authenticated"]
         },
         {
           "route": "/login",

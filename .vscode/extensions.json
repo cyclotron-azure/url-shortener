@@ -1,5 +1,22 @@
 {
   "recommendations": [
-    "ms-dotnettools.csharp"
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "ms-azuretools.vscode-docker",
+    "editorconfig.editorconfig",
+    "usernamehw.errorlens",
+    "github.copilot",
+    "github.copilot-chat",
+    "josefpihrt-vscode.roslynator",
+    "vscode-icons-team.vscode-icons",
+    "redhat.vscode-xml",
+    "redhat.vscode-yaml",
+    "humao.rest-client",
+    "ms-dotnettools.blazorwasm-companion",
+    "ms-vscode.live-server",
+    "visualstudioexptteam.vscodeintellicode-insiders",
+    "mikestead.dotenv",
+    "streetsidesoftware.code-spell-checker",
+    "ms-azuretools.vscode-bicep"
   ]
 }

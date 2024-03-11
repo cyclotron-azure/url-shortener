@@ -21,6 +21,21 @@ builder.Services.AddOptions<ShortenerOptions>()
     c.Bind(nameof(ShortenerOptions), o);
 });
 
+// add code that will only allow local and domain specific.
+var  allowAllOrigins = "_allowAllOrigins";
+
+// add cors configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: allowAllOrigins,
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
+
 // register the helper
 builder.Services.AddTransient(sp =>{
     var options = sp.GetRequiredService<IOptions<ShortenerOptions>>().Value;
@@ -29,8 +44,9 @@ builder.Services.AddTransient(sp =>{
 });
 
 var app = builder.Build();
+app.UseCors(allowAllOrigins);
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Minimal Api");
 
 app.MapPost("/api/UrlArchive", async (HttpRequest req) =>
 {

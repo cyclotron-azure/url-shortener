@@ -17,7 +17,6 @@
 		<PackageReference Include="Syncfusion.Blazor.Charts" />
 		<PackageReference Include="Syncfusion.Blazor.Grid" />
 		<PackageReference Include="Syncfusion.Blazor.Spinner" />
-		<PackageReference Include="AnthonyChu.AzureStaticWebApps.Blazor.Authentication" />
 	</ItemGroup>
 
 	<ItemGroup>
