@@ -1,0 +1,10 @@
+POST http://localhost:7071/api/UrlArchive
+Content-Type: application/json
+
+{
+    // [Required]
+    "PartitionKey": "a",
+
+    // [Required]
+    "RowKey": "azFunc"
+}

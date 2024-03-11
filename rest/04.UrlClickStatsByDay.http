@@ -1,0 +1,7 @@
+POST http://localhost:7071/api/UrlClickStatsByDay
+Content-Type: application/json
+
+{
+    // [Required] the end of the URL that you want statistics for.
+    "vanity": "azFunc"
+}

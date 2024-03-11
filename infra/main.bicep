@@ -31,6 +31,7 @@ param webServiceName string = ''
 //   tags: union(tags, { 'azd-service-name': <service name in azure.yaml> })
 var tags = {
   'azd-env-name': environmentName
+  'deployed': 'bicep'
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -147,3 +148,4 @@ output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applica
 
 // output BLAZOR_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
 output WEBAPI_BASE_URL string = urlShortenerWebApi.outputs.uri
+output STORAGE_CONNECTION string = storage.outputs.connectionString
