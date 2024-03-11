@@ -8,17 +8,17 @@ public class ShortResponse
     /// <summary>
     /// Gets or sets the shortened URL.
     /// </summary>
-    public string ShortUrl { get; set; }
+    public string? ShortUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the original long URL.
     /// </summary>
-    public string LongUrl { get; set; }
+    public string? LongUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the title of the webpage associated with the URL.
     /// </summary>
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ShortResponse"/> class.

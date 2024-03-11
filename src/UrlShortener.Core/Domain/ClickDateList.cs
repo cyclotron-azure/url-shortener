@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace UrlShortener.Core.Domain;
 
 /// <summary>
@@ -10,7 +8,7 @@ public class ClickDateList
     /// <summary>
     /// Gets or sets the list of click dates.
     /// </summary>
-    public List<ClickDate> Items { get; set; }
+    public List<ClickDate> Items { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the URL associated with the click dates.

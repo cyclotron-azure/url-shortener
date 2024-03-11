@@ -45,10 +45,7 @@ public class ShortUrlRequest
     {
         get
         {
-            if (_schedules == null)
-            {
-                _schedules = new List<Schedule>();
-            }
+            _schedules ??= [];
             return _schedules;
         }
         set

@@ -5,20 +5,27 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using UrlShortener.Core.Domain;
 using UrlShortener.Core.Messages;
 using UrlShortener.WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// register the helper
+builder.Services.AddScoped(sp =>{
+    var options = sp.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+
+    return new StorageTableHelper(options.DataStorage!);
+});
+
 var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerOptions settings) =>
 {
     var logger = loggerFactory.CreateLogger("UrlArchive");
     logger.LogInformation("HTTP trigger - UrlArchive");
@@ -56,7 +63,7 @@ app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFact
     return Results.Ok(result);
 });
 
-app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerOptions settings) =>
 {
     var logger = loggerFactory.CreateLogger("UrlClickStatsByDay");
     logger.LogInformation("HTTP trigger: UrlClickStatsByDay");
@@ -105,7 +112,7 @@ app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory lo
     return Results.Ok(result);
 });
 
-app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerOptions settings) =>
 {
     var logger = loggerFactory.CreateLogger("UrlCreate");
 
@@ -181,20 +188,20 @@ app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFacto
     }
 });
 
-app.MapGet("/api/UrlList", async (ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapGet("/api/UrlList", async (ILoggerFactory loggerFactory, StorageTableHelper storage, IOptions<ShortenerOptions> options) =>
 {
     var logger = loggerFactory.CreateLogger("UrlList");
     logger.LogInformation($"Starting UrlList...");
 
     var result = new ListResponse();
     string userId = string.Empty;
-
-    StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
+    var settings = options.Value;
 
     try
     {
-        result.UrlList = await stgHelper.GetAllShortUrlEntities().ConfigureAwait(false);
+        result.UrlList = await storage.GetAllShortUrlEntities().ConfigureAwait(false);
         result.UrlList = result.UrlList.Where(p => !(p.IsArchived ?? false)).ToList();
+
         var host = string.IsNullOrEmpty(settings.CustomDomain) ? app.Environment.ApplicationName : settings.CustomDomain;
         foreach (ShortUrlEntity url in result.UrlList)
         {
@@ -210,7 +217,7 @@ app.MapGet("/api/UrlList", async (ILoggerFactory loggerFactory, ShortenerSetting
     return Results.Ok(result);
 });
 
-app.MapGet("/{shortUrl}", async (string shortUrl, ILoggerFactory loggerFactory, HttpContext context, ShortenerSettings settings) =>
+app.MapGet("/{shortUrl}", async (string shortUrl, ILoggerFactory loggerFactory, HttpContext context, ShortenerOptions settings) =>
 {
     string redirectUrl = "https://azure.com";
     
@@ -245,7 +252,7 @@ app.MapPost("/api/UrlUpdate", async (HttpRequest req) =>
 {
     var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlUpdate");
-    var settings = app.Services.GetRequiredService<ShortenerSettings>();
+    var settings = app.Services.GetRequiredService<ShortenerOptions>();
 
     logger.LogInformation($"HTTP trigger - UrlUpdate");
 

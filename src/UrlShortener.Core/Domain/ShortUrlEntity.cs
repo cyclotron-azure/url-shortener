@@ -1,7 +1,4 @@
 using Microsoft.Azure.Cosmos.Table;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 
 namespace UrlShortener.Core.Domain
@@ -14,7 +11,7 @@ namespace UrlShortener.Core.Domain
         /// <summary>
         /// Gets or sets the original URL.
         /// </summary>
-        public string Url { get; set; }
+        public string Url { get; set; } = string.Empty;
 
         private string _activeUrl { get; set; }
 
@@ -25,7 +22,7 @@ namespace UrlShortener.Core.Domain
         {
             get
             {
-                if (String.IsNullOrEmpty(_activeUrl))
+                if (string.IsNullOrEmpty(_activeUrl))
                     _activeUrl = GetActiveUrl();
                 return _activeUrl;
             }
@@ -106,7 +103,7 @@ namespace UrlShortener.Core.Domain
         /// <param name="longUrl">The long URL.</param>
         /// <param name="endUrl">The end URL.</param>
         /// <param name="schedules">The schedules.</param>
-        public ShortUrlEntity(string longUrl, string endUrl, Schedule[] schedules)
+        public ShortUrlEntity(string longUrl, string endUrl, Schedule[]? schedules)
         {
             Initialize(longUrl, endUrl, string.Empty, schedules);
         }
@@ -118,12 +115,12 @@ namespace UrlShortener.Core.Domain
         /// <param name="endUrl">The end URL.</param>
         /// <param name="title">The title.</param>
         /// <param name="schedules">The schedules.</param>
-        public ShortUrlEntity(string longUrl, string endUrl, string title, Schedule[] schedules)
+        public ShortUrlEntity(string longUrl, string endUrl, string title, Schedule[]? schedules)
         {
             Initialize(longUrl, endUrl, title, schedules);
         }
 
-        private void Initialize(string longUrl, string endUrl, string title, Schedule[] schedules)
+        private void Initialize(string longUrl, string endUrl, string title, Schedule[]? schedules)
         {
             PartitionKey = endUrl.First().ToString();
             RowKey = endUrl;
