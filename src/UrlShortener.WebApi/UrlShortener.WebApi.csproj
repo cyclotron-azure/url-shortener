@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RollForward>LatestMajor</RollForward>
+    <UserSecretsId>ba294d26-da0c-4f42-b469-9efaa2dee4df</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="cronos" />
