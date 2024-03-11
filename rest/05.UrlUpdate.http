@@ -1,0 +1,16 @@
+POST http://localhost:7071/api/UrlUpdate
+Content-Type: application/json
+
+{
+    // [Required]
+    "PartitionKey": "a",
+
+    // [Required]
+    "RowKey": "azFunc",
+
+    // [Optional] New Title for this URL, or text description of your choice.
+    "title": "Azure Container Apps allows you to run containerized applications without worrying about orchestration or infrastructure.",
+
+    // [Optional] New long Url where the the user will be redirect
+    "Url": "https://learn.microsoft.com/en-us/azure/container-apps/"
+}

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
@@ -6,17 +6,17 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>UrlShortener.BlazorAdmin</RootNamespace>
 		<DebugType>portable</DebugType>
-	</PropertyGroup>
+	  <UserSecretsId>e32fcb91-559a-4e8e-9bb2-6f32ef145bae</UserSecretsId>
+  </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly"  />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" />
-		<PackageReference Include="Microsoft.Authentication.WebAssembly.Msal"  />
+		<PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" />
 		<PackageReference Include="Syncfusion.Blazor.Calendars" />
 		<PackageReference Include="Syncfusion.Blazor.Charts" />
 		<PackageReference Include="Syncfusion.Blazor.Grid" />
 		<PackageReference Include="Syncfusion.Blazor.Spinner" />
-		<PackageReference Include="AnthonyChu.AzureStaticWebApps.Blazor.Authentication" />
 	</ItemGroup>
 
 	<ItemGroup>

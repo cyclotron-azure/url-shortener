@@ -1,14 +1,16 @@
 using Microsoft.Azure.Cosmos.Table;
-using System;
 
 namespace UrlShortener.Core.Domain;
 
+/// <summary>
+/// The entity class for Click stats.
+/// </summary>
 public class ClickStatsEntity : TableEntity
 {
     /// <summary>
     /// Gets or sets the datetime of the click.
     /// </summary>
-    public string Datetime { get; set; }
+    public string? Datetime { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClickStatsEntity"/> class.

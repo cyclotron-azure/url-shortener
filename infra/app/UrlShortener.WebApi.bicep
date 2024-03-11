@@ -7,6 +7,7 @@ param containerRegistryName string
 param containerAppsEnvironmentName string
 param applicationInsightsName string
 param exists bool
+
 @secure()
 param appDefinition object
 

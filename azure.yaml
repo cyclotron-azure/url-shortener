@@ -4,7 +4,12 @@ name: url-shortener
 metadata:
     template: azd-init@1.5.1
 services:
-    UrlShortener.WebApi:
+    api:
         project: src/UrlShortener.WebApi
         host: containerapp
+        language: dotnet
+    
+    admin:
+        project: src/UrlShortener.BlazorAdmin
+        host: staticwebapp
         language: dotnet

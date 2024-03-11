@@ -3,16 +3,17 @@ using System.Text.Json;
 
 namespace UrlShortener.Core.Domain;
 
+/// <summary>
+/// The helper class for Azure Blob Storage.
+/// </summary>
 public class StorageTableHelper
 {
-    private string StorageConnectionString { get; set; }
+    private string? StorageConnectionString { get; set; }
 
     /// <summary>
-    /// Helper class for working with storage tables.
+    /// Constructor to pass the Azure Blob Connecting string.
     /// </summary>
-    public StorageTableHelper() { }
-
-
+    /// <param name="storageConnectionString"></param>
     public StorageTableHelper(string storageConnectionString)
     {
         StorageConnectionString = storageConnectionString;
@@ -55,11 +56,11 @@ public class StorageTableHelper
     /// </summary>
     /// <param name="row">The row to retrieve.</param>
     /// <returns>The retrieved ShortUrlEntity.</returns>
-    public async Task<ShortUrlEntity> GetShortUrlEntity(ShortUrlEntity row)
+    public async Task<ShortUrlEntity?> GetShortUrlEntity(ShortUrlEntity row)
     {
         TableOperation selOperation = TableOperation.Retrieve<ShortUrlEntity>(row.PartitionKey, row.RowKey);
         TableResult result = await GetUrlsTable().ExecuteAsync(selOperation).ConfigureAwait(false);
-        ShortUrlEntity eShortUrl = result.Result as ShortUrlEntity;
+        ShortUrlEntity? eShortUrl = result.Result as ShortUrlEntity;
         return eShortUrl;
     }
 
@@ -91,17 +92,21 @@ public class StorageTableHelper
     /// </summary>
     /// <param name="vanity">The vanity to search for.</param>
     /// <returns>The ShortUrlEntity with the specified vanity.</returns>
-    public async Task<ShortUrlEntity> GetShortUrlEntityByVanity(string vanity)
+    public async Task<ShortUrlEntity?> GetShortUrlEntityByVanity(string vanity)
     {
         var tblUrls = GetUrlsTable();
-        TableContinuationToken token = null;
-        ShortUrlEntity shortUrlEntity = null;
+        TableContinuationToken? token = null;
+        ShortUrlEntity? shortUrlEntity;
         do
         {
             TableQuery<ShortUrlEntity> query = new TableQuery<ShortUrlEntity>().Where(
                 filter: TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, vanity));
+
             var queryResult = await tblUrls.ExecuteQuerySegmentedAsync(query, token).ConfigureAwait(false);
             shortUrlEntity = queryResult.Results.FirstOrDefault();
+            
+            token = queryResult.ContinuationToken;
+
         } while (token != null);
 
         return shortUrlEntity;
@@ -122,11 +127,11 @@ public class StorageTableHelper
     /// </summary>
     /// <param name="newShortUrl">The ShortUrlEntity to save.</param>
     /// <returns>The saved ShortUrlEntity.</returns>
-    public async Task<ShortUrlEntity> SaveShortUrlEntity(ShortUrlEntity newShortUrl)
+    public async Task<ShortUrlEntity?> SaveShortUrlEntity(ShortUrlEntity newShortUrl)
     {
         TableOperation insOperation = TableOperation.InsertOrMerge(newShortUrl);
         TableResult result = await GetUrlsTable().ExecuteAsync(insOperation).ConfigureAwait(false);
-        ShortUrlEntity eShortUrl = result.Result as ShortUrlEntity;
+        ShortUrlEntity? eShortUrl = result.Result as ShortUrlEntity;
         return eShortUrl;
     }
 
@@ -137,8 +142,8 @@ public class StorageTableHelper
     /// <returns>True if the ShortUrlEntity exists, false otherwise.</returns>
     public async Task<bool> IfShortUrlEntityExistByVanity(string vanity)
     {
-        ShortUrlEntity shortUrlEntity = await GetShortUrlEntityByVanity(vanity).ConfigureAwait(false);
-        return (shortUrlEntity != null);
+        ShortUrlEntity? shortUrlEntity = await GetShortUrlEntityByVanity(vanity).ConfigureAwait(false);
+        return shortUrlEntity != null;
     }
 
     /// <summary>
@@ -148,8 +153,8 @@ public class StorageTableHelper
     /// <returns>True if the ShortUrlEntity exists, false otherwise.</returns>
     public async Task<bool> IfShortUrlEntityExist(ShortUrlEntity row)
     {
-        ShortUrlEntity eShortUrl = await GetShortUrlEntity(row).ConfigureAwait(false);
-        return (eShortUrl != null);
+        ShortUrlEntity? eShortUrl = await GetShortUrlEntity(row).ConfigureAwait(false);
+        return eShortUrl != null;
     }
 
     /// <summary>
@@ -161,9 +166,8 @@ public class StorageTableHelper
         // Get current ID
         TableOperation selOperation = TableOperation.Retrieve<NextId>("1", "KEY");
         TableResult result = await GetUrlsTable().ExecuteAsync(selOperation).ConfigureAwait(false);
-        NextId entity = result.Result as NextId;
 
-        if (entity == null)
+        if (result.Result is not NextId entity)
         {
             entity = new NextId
             {
@@ -188,14 +192,18 @@ public class StorageTableHelper
     /// </summary>
     /// <param name="urlEntity">The ShortUrlEntity to update.</param>
     /// <returns>The updated ShortUrlEntity.</returns>
-    public async Task<ShortUrlEntity> UpdateShortUrlEntity(ShortUrlEntity urlEntity)
+    public async Task<ShortUrlEntity?> UpdateShortUrlEntity(ShortUrlEntity urlEntity)
     {
-        ShortUrlEntity originalUrl = await GetShortUrlEntity(urlEntity).ConfigureAwait(false);
-        originalUrl.Url = urlEntity.Url;
-        originalUrl.Title = urlEntity.Title;
-        originalUrl.SchedulesPropertyRaw = JsonSerializer.Serialize<List<Schedule>>(urlEntity.Schedules);
+        ShortUrlEntity? originalUrl = await GetShortUrlEntity(urlEntity).ConfigureAwait(false);
+        if (originalUrl != null){
+                    originalUrl.Url = urlEntity.Url;
+                    originalUrl.Title = urlEntity.Title;
+                    originalUrl.SchedulesPropertyRaw = JsonSerializer.Serialize<List<Schedule>>(urlEntity.Schedules);
+            
+                    return await SaveShortUrlEntity(originalUrl).ConfigureAwait(false);
+        }
 
-        return await SaveShortUrlEntity(originalUrl).ConfigureAwait(false);
+        return null;
     }
 
     /// <summary>
@@ -207,7 +215,7 @@ public class StorageTableHelper
     public async Task<List<ClickStatsEntity>> GetAllStatsByVanity(string vanity)
     {
         var tblUrls = GetStatsTable();
-        TableContinuationToken token = null;
+        TableContinuationToken? token = null;
         var lstShortUrl = new List<ClickStatsEntity>();
         do
         {
@@ -235,9 +243,14 @@ public class StorageTableHelper
     /// </summary>
     /// <param name="urlEntity">The ShortUrlEntity to archive.</param>
     /// <returns>The archived ShortUrlEntity.</returns>
-    public async Task<ShortUrlEntity> ArchiveShortUrlEntity(ShortUrlEntity urlEntity)
+    public async Task<ShortUrlEntity?> ArchiveShortUrlEntity(ShortUrlEntity urlEntity)
     {
-        ShortUrlEntity originalUrl = await GetShortUrlEntity(urlEntity).ConfigureAwait(false);
+        ShortUrlEntity? originalUrl = await GetShortUrlEntity(urlEntity).ConfigureAwait(false);
+        
+        if (originalUrl == null) {
+            return null;
+        }
+
         originalUrl.IsArchived = true;
 
         return await SaveShortUrlEntity(originalUrl).ConfigureAwait(false);

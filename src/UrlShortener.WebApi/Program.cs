@@ -5,22 +5,56 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using UrlShortener.Core.Domain;
 using UrlShortener.Core.Messages;
 using UrlShortener.WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+builder.Services.AddLogging(x => x.AddConsole());
+builder.Services.AddOptions<ShortenerOptions>()
+.Configure<IConfiguration>((o, c) => {
+    c.Bind(nameof(ShortenerOptions), o);
+});
 
-app.MapGet("/", () => "Hello World!");
+// add code that will only allow local and domain specific.
+var  allowAllOrigins = "_allowAllOrigins";
 
-app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+// add cors configuration
+builder.Services.AddCors(options =>
 {
+    options.AddPolicy(name: allowAllOrigins,
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyHeader()
+                   .AllowAnyMethod();
+        });
+});
+
+// register the helper
+builder.Services.AddTransient(sp =>{
+    var options = sp.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+
+    return new StorageTableHelper(options.DataStorage!);
+});
+
+var app = builder.Build();
+app.UseCors(allowAllOrigins);
+
+app.MapGet("/", () => "Minimal Api");
+
+app.MapPost("/api/UrlArchive", async (HttpRequest req) =>
+{
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlArchive");
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
+
     logger.LogInformation("HTTP trigger - UrlArchive");
 
     ShortUrlEntity input;
@@ -43,9 +77,7 @@ app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFact
             }
         }
 
-        StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
-
-        result = await stgHelper.ArchiveShortUrlEntity(input).ConfigureAwait(false);
+        result = await storage.ArchiveShortUrlEntity(input).ConfigureAwait(false);
     }
     catch (Exception ex)
     {
@@ -56,9 +88,13 @@ app.MapPost("/api/UrlArchive", async (HttpRequest req, ILoggerFactory loggerFact
     return Results.Ok(result);
 });
 
-app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req) =>
 {
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlClickStatsByDay");
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
+
     logger.LogInformation("HTTP trigger: UrlClickStatsByDay");
 
     UrlClickStatsRequest input;
@@ -82,9 +118,7 @@ app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory lo
             }
         }
 
-        StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
-
-        var rawStats = await stgHelper.GetAllStatsByVanity(input.Vanity).ConfigureAwait(false);
+        var rawStats = await storage.GetAllStatsByVanity(input.Vanity).ConfigureAwait(false);
 
         result.Items = rawStats.GroupBy(s => DateTime.Parse(s.Datetime).Date)
                                 .Select(stat => new ClickDate
@@ -93,7 +127,7 @@ app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory lo
                                     Count = stat.Count()
                                 }).OrderBy(s => DateTime.Parse(s.DateClicked).Date).ToList<ClickDate>();
 
-        var host = string.IsNullOrEmpty(settings.CustomDomain) ? req.Host.ToString() : settings.CustomDomain.ToString();
+        var host = string.IsNullOrEmpty(options.CustomDomain) ? req.Host.ToString() : options.CustomDomain.ToString();
         result.Url = Utility.GetShortUrl(host, input.Vanity);
     }
     catch (Exception ex)
@@ -105,11 +139,14 @@ app.MapPost("/api/UrlClickStatsByDay", async (HttpRequest req, ILoggerFactory lo
     return Results.Ok(result);
 });
 
-app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapPost("/api/UrlCreate", async (HttpRequest req) =>
 {
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlCreate");
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
 
-    logger.LogInformation($"__trace creating shortURL: {req}");
+    logger.LogInformation($"Creating shortURL: {req}");
     string userId = string.Empty;
     ShortRequest input;
     var result = new ShortResponse();
@@ -144,8 +181,6 @@ app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFacto
             return Results.BadRequest(new { Message = $"{input.Url} is not a valid absolute Url. The Url parameter must start with 'http://' or 'http://'." });
         }
 
-        StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
-
         string longUrl = input.Url.Trim();
         string vanity = string.IsNullOrWhiteSpace(input.Vanity) ? "" : input.Vanity.Trim();
         string title = string.IsNullOrWhiteSpace(input.Title) ? "" : input.Title.Trim();
@@ -155,19 +190,19 @@ app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFacto
         if (!string.IsNullOrEmpty(vanity))
         {
             newRow = new ShortUrlEntity(longUrl, vanity, title, input.Schedules);
-            if (await stgHelper.IfShortUrlEntityExist(newRow).ConfigureAwait(false))
+            if (await storage.IfShortUrlEntityExist(newRow).ConfigureAwait(false))
             {
                 return Results.Conflict(new { Message = "This Short URL already exist." });
             }
         }
         else
         {
-            newRow = new ShortUrlEntity(longUrl, await Utility.GetValidEndUrl(vanity, stgHelper).ConfigureAwait(false), title, input.Schedules);
+            newRow = new ShortUrlEntity(longUrl, await Utility.GetValidEndUrl(vanity, storage).ConfigureAwait(false), title, input.Schedules);
         }
 
-        await stgHelper.SaveShortUrlEntity(newRow).ConfigureAwait(false);
+        await storage.SaveShortUrlEntity(newRow).ConfigureAwait(false);
 
-        var host = string.IsNullOrEmpty(settings.CustomDomain) ? req.Host.ToString() : settings.CustomDomain.ToString();
+        var host = string.IsNullOrEmpty(options.CustomDomain) ? req.Host.ToString() : options.CustomDomain.ToString();
         result = new ShortResponse(host, newRow.Url, newRow.RowKey, newRow.Title);
 
         logger.LogInformation("Short Url created.");
@@ -181,21 +216,24 @@ app.MapPost("/api/UrlCreate", async (HttpRequest req, ILoggerFactory loggerFacto
     }
 });
 
-app.MapGet("/api/UrlList", async (ILoggerFactory loggerFactory, ShortenerSettings settings) =>
+app.MapGet("/api/UrlList", async () =>
 {
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlList");
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
+
     logger.LogInformation($"Starting UrlList...");
 
     var result = new ListResponse();
     string userId = string.Empty;
 
-    StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
-
     try
     {
-        result.UrlList = await stgHelper.GetAllShortUrlEntities().ConfigureAwait(false);
+        result.UrlList = await storage.GetAllShortUrlEntities().ConfigureAwait(false);
         result.UrlList = result.UrlList.Where(p => !(p.IsArchived ?? false)).ToList();
-        var host = string.IsNullOrEmpty(settings.CustomDomain) ? app.Environment.ApplicationName : settings.CustomDomain;
+
+        var host = string.IsNullOrEmpty(options.CustomDomain) ? app.Environment.ApplicationName : options.CustomDomain;
         foreach (ShortUrlEntity url in result.UrlList)
         {
             url.ShortUrl = Utility.GetShortUrl(host, url.RowKey);
@@ -210,26 +248,28 @@ app.MapGet("/api/UrlList", async (ILoggerFactory loggerFactory, ShortenerSetting
     return Results.Ok(result);
 });
 
-app.MapGet("/{shortUrl}", async (string shortUrl, ILoggerFactory loggerFactory, HttpContext context, ShortenerSettings settings) =>
+app.MapGet("/{shortUrl}", async (string shortUrl, HttpContext context) =>
 {
-    string redirectUrl = "https://azure.com";
-    
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("redirect");
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
+
+    string redirectUrl = "https://azure.com";
+
     if (!string.IsNullOrWhiteSpace(shortUrl))
     {
-        redirectUrl = settings.DefaultRedirectUrl ?? redirectUrl;
-
-        StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
+        redirectUrl = options.DefaultRedirectUrl ?? redirectUrl;
 
         var tempUrl = new ShortUrlEntity(string.Empty, shortUrl);
-        var newUrl = await stgHelper.GetShortUrlEntity(tempUrl).ConfigureAwait(false);
+        var newUrl = await storage.GetShortUrlEntity(tempUrl).ConfigureAwait(false);
 
         if (newUrl != null)
         {
             logger.LogInformation($"Found it: {newUrl.Url}");
             newUrl.Clicks++;
-            await stgHelper.SaveClickStatsEntity(new ClickStatsEntity(newUrl.RowKey)).ConfigureAwait(false);
-            await stgHelper.SaveShortUrlEntity(newUrl).ConfigureAwait(false);
+            await storage.SaveClickStatsEntity(new ClickStatsEntity(newUrl.RowKey)).ConfigureAwait(false);
+            await storage.SaveShortUrlEntity(newUrl).ConfigureAwait(false);
             redirectUrl = WebUtility.UrlDecode(newUrl.ActiveUrl);
         }
     }
@@ -245,7 +285,8 @@ app.MapPost("/api/UrlUpdate", async (HttpRequest req) =>
 {
     var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
     var logger = loggerFactory.CreateLogger("UrlUpdate");
-    var settings = app.Services.GetRequiredService<ShortenerSettings>();
+    var options = app.Services.GetRequiredService<IOptions<ShortenerOptions>>().Value;
+    var storage = app.Services.GetRequiredService<StorageTableHelper>();
 
     logger.LogInformation($"HTTP trigger - UrlUpdate");
 
@@ -283,10 +324,8 @@ app.MapPost("/api/UrlUpdate", async (HttpRequest req) =>
             return Results.BadRequest(new { Message = $"{input.Url} is not a valid absolute Url. The Url parameter must start with 'http://' or 'http://'." });
         }
 
-        StorageTableHelper stgHelper = new StorageTableHelper(settings.DataStorage);
-
-        result = await stgHelper.UpdateShortUrlEntity(input).ConfigureAwait(false);
-        var host = string.IsNullOrEmpty(settings.CustomDomain) ? req.Host.ToString() : settings.CustomDomain.ToString();
+        result = await storage.UpdateShortUrlEntity(input).ConfigureAwait(false);
+        var host = string.IsNullOrEmpty(options.CustomDomain) ? req.Host.ToString() : options.CustomDomain.ToString();
         result.ShortUrl = Utility.GetShortUrl(host, result.RowKey);
 
     }

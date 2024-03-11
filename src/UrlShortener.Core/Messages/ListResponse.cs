@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UrlShortener.Core.Domain;
 
 namespace UrlShortener.Core.Messages;
@@ -11,7 +10,7 @@ public class ListResponse
     /// <summary>
     /// Gets or sets the list of short URLs.
     /// </summary>
-    public List<ShortUrlEntity> UrlList { get; set; }
+    public List<ShortUrlEntity> UrlList { get; set; } = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ListResponse"/> class.

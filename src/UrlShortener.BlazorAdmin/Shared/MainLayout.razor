@@ -7,15 +7,7 @@
 
     <main>
         <div class="top-row px-4">
-            <AuthorizeView>
-                <Authorized >
-                        Hello, @context.User.Identity?.Name! 
-                        <a class="nav-link btn btn-link" href="/logout?post_logout_redirect_uri=/">Log out</a>
-                </Authorized>
-                <NotAuthorized>
-                    <a href="/login">Log in</a>
-                </NotAuthorized>
-            </AuthorizeView>
+            <LoginDisplay />
             <a href="https://github.com/FBoucher/AzUrlShortener" target="_blank">About</a>
         </div>
 

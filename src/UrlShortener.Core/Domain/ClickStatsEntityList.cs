@@ -10,7 +10,7 @@ public class ClickStatsEntityList
     /// <summary>
     /// Gets or sets the list of click statistics entities.
     /// </summary>
-    public List<ClickStatsEntity> ClickStatsList { get; set; }
+    public List<ClickStatsEntity> ClickStatsList { get; set; } = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClickStatsEntityList"/> class.
