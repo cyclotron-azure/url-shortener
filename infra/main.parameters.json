@@ -33,5 +33,9 @@
       "principalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
       }
+    },
+    "principalId": {
+      "value": "${AZURE_PRINCIPAL_ID}"
     }
-}
+  }
+
